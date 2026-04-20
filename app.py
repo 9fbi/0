@@ -27,7 +27,6 @@ section.main > div {
 }
 /* ----------------------------------------- */
 /* REMOVE ALL STREAMLIT FOOTER + DEPLOY UI */
-/* REMOVE ALL STREAMLIT FOOTER + DEPLOY UI */
 footer,
 footer * {
     display: none !important;
@@ -51,6 +50,9 @@ div[data-testid="stStatusWidget"] {
 /* Extra safety (sometimes appears) */
 #root > div:nth-child(1) > div > div > div > div > section > div {
     padding-bottom: 0rem !important;
+}
+div[data-testid] {
+    backdrop-filter: none !important;
 }
 /* ----------------------------------------- */
 #MainMenu {visibility: hidden;}

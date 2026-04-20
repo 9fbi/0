@@ -97,7 +97,7 @@ function draw(){
 }
 setInterval(draw, 35);
 </script>
-""", height=0)
+""", height=50)
 @st.cache_data
 def generate_data():
     rows = 120000

@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="Cyber Threat Dashboard",
-    page_icon="🧠",
+    page_icon="🛡️",
     layout="wide"
 )
 
@@ -177,7 +177,7 @@ if search:
     ]
 
 # ---------------- TITLE ----------------
-st.title("Cyber Threat Trends Dashboard [2016–2025]")
+st.title("🛡️Cyber Threat Trends Dashboard [2016–2025]")
 
 # ---------------- KPI ----------------
 c1, c2, c3 = st.columns(3)

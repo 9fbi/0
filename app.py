@@ -7,7 +7,7 @@ import streamlit.components.v1 as components
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="Cyber Threat Dashboard",
-    page_icon="🛡️",
+    page_icon="🧠",
     layout="wide"
 )
 
@@ -22,9 +22,18 @@ st.markdown("""
 
 /* GLOBAL */
 html, body, [class*="css"] {
-    background-color: black !important;
+    background-color: #000000 !important;
     color: #00ff00 !important;
     font-family: "Courier New", monospace !important;
+}
+
+/* REMOVE WHITE FLASH */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: black;
+    z-index: -9999;
 }
 
 /* HIDE STREAMLIT UI */
@@ -32,46 +41,36 @@ html, body, [class*="css"] {
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
-/* ---------------- BLINKING CARDS ---------------- */
+/* CARD */
 .card {
-    background: rgba(0,255,0,0.08);
+    background: rgba(0,255,0,0.05);
     border: 1px solid #00ff00;
-    padding: 14px;
-    border-radius: 10px;
+    padding: 16px;
+    border-radius: 12px;
     text-align: center;
-
-    animation: pulseGlow 1.5s infinite;
+    animation: pulseGlow 1.6s infinite;
 }
 
+/* GLOW ANIMATION */
 @keyframes pulseGlow {
-    0% {
-        box-shadow: 0 0 5px #00ff00;
-        transform: scale(1);
-    }
-    50% {
-        box-shadow: 0 0 25px #00ff00;
-        transform: scale(1.03);
-    }
-    100% {
-        box-shadow: 0 0 5px #00ff00;
-        transform: scale(1);
-    }
+    0% { box-shadow: 0 0 5px #00ff00; }
+    50% { box-shadow: 0 0 25px #00ff00; }
+    100% { box-shadow: 0 0 5px #00ff00; }
 }
 
 /* TEXT GLOW */
-.card h2, .card h3 {
-    color: #00ff00;
+h1, h2, h3 {
     text-shadow: 0 0 10px #00ff00;
 }
 
 /* SIDEBAR */
 section[data-testid="stSidebar"] {
     background-color: black !important;
-    border-right: 1px solid #00ff00;
+    border-right: 2px solid #00ff00;
 }
 
 /* BLINK FILTER */
-div[data-baseweb="select"] {
+div[data-baseweb="select"], input {
     animation: blink 1.2s infinite;
 }
 
@@ -94,6 +93,7 @@ canvas {
     top: 0;
     left: 0;
     z-index: -1;
+    pointer-events: none;
 }
 </style>
 
@@ -133,26 +133,36 @@ function draw(){
 
 setInterval(draw, 35);
 </script>
-""", height=50)
+""", height=0)
 
-# ---------------- DATA (2016–2025) ----------------
-years = list(range(2016, 2026))
+# ---------------- DATA GENERATION (CACHED, LARGE) ----------------
+@st.cache_data
+def generate_data():
+    years = list(range(2016, 2026))
+    countries = ["India", "USA", "China", "Germany", "Russia", "UK", "France", "Japan"]
+    attack_types = ["Malware", "Phishing", "Ransomware", "DDoS"]
+    severity_levels = ["Low", "Medium", "High", "Critical"]
 
-data = []
+    data = []
 
-for y in years:
-    # large volume per year
-    attacks_per_year = random.randint(2000, 5000)
+    for y in years:
+        # GUARANTEED LARGE DATA (20k+ total)
+        attacks_per_year = random.randint(2500, 4000)
 
-    for _ in range(attacks_per_year):
-        data.append({
-            "Year": y,
-            "Country": random.choice(["India", "USA", "China", "Germany", "Russia"]),
-            "Attack Type": random.choice(["Malware", "Phishing", "Ransomware", "DDoS"]),
-            "Severity": random.choice(["Low", "Medium", "High", "Critical"])
-        })
+        for _ in range(attacks_per_year):
+            data.append({
+                "Year": y,
+                "Country": random.choice(countries),
+                "Attack Type": random.choice(attack_types),
+                "Severity": random.choices(
+                    severity_levels,
+                    weights=[0.2, 0.4, 0.3, 0.1]
+                )[0]
+            })
 
-df = pd.DataFrame(data)
+    return pd.DataFrame(data)
+
+df = generate_data()
 
 # ---------------- SIDEBAR ----------------
 st.sidebar.title("⚡ Filters")
@@ -164,21 +174,11 @@ search = st.sidebar.text_input("🔍 Search")
 # ---------------- LIVE ATTACK PANEL ----------------
 st.sidebar.markdown("## 🌍 Live Attacks")
 
-live = pd.DataFrame({
-    "Country": ["India", "USA", "China", "Germany", "Russia"]
-})
+live_df = df.groupby("Country").size().reset_index(name="Attacks")
+live_df["Attacks"] += st.session_state.tick * 5
+live_df = live_df.sort_values("Attacks", ascending=False).head(6)
 
-live["Attacks"] = [
-    random.randint(80, 200) + st.session_state.tick,
-    random.randint(90, 220) + st.session_state.tick,
-    random.randint(70, 180) + st.session_state.tick,
-    random.randint(60, 160) + st.session_state.tick,
-    random.randint(100, 240) + st.session_state.tick,
-]
-
-live = live.sort_values("Attacks", ascending=False)
-
-for _, r in live.iterrows():
+for _, r in live_df.iterrows():
     st.sidebar.markdown(f"""
     <div style="
         border:1px solid #00ff00;
@@ -186,61 +186,60 @@ for _, r in live.iterrows():
         margin:5px 0;
         border-radius:6px;
         background:rgba(0,255,0,0.05);
-        font-family:monospace;
     ">
     {r['Country']} → {r['Attacks']}
     </div>
     """, unsafe_allow_html=True)
 
-st.sidebar.caption("🔄 Live cyber feed")
-
 # ---------------- FILTER DATA ----------------
+filtered_df = df.copy()
+
 if country != "All":
-    df = df[df["Country"] == country]
+    filtered_df = filtered_df[filtered_df["Country"] == country]
 
 if attack_type != "All":
-    df = df[df["Attack Type"] == attack_type]
+    filtered_df = filtered_df[filtered_df["Attack Type"] == attack_type]
 
 if search:
-    df = df[df.astype(str).apply(lambda r: r.str.contains(search, case=False).any(), axis=1)]
+    filtered_df = filtered_df[
+        filtered_df.astype(str).apply(
+            lambda r: r.str.contains(search, case=False).any(), axis=1
+        )
+    ]
 
 # ---------------- TITLE ----------------
-st.title("🛡️ Cyber Threat Trends Dashboard")
+st.title("Cyber Threat Trends Dashboard")
 
-# ---------------- KPI CARDS ----------------
+# ---------------- KPI ----------------
 c1, c2, c3 = st.columns(3)
 
-with c1:
-    st.markdown(f'<div class="card"><h3>Total Attacks</h3><h2>{len(df)}</h2></div>', unsafe_allow_html=True)
-
-with c2:
-    st.markdown(f'<div class="card"><h3>Attack Types</h3><h2>{df["Attack Type"].nunique()}</h2></div>', unsafe_allow_html=True)
-
-with c3:
-    st.markdown(f'<div class="card"><h3>Countries</h3><h2>{df["Country"].nunique()}</h2></div>', unsafe_allow_html=True)
+c1.markdown(f'<div class="card"><h3>Total Attacks</h3><h2>{len(filtered_df)}</h2></div>', unsafe_allow_html=True)
+c2.markdown(f'<div class="card"><h3>Attack Types</h3><h2>{filtered_df["Attack Type"].nunique()}</h2></div>', unsafe_allow_html=True)
+c3.markdown(f'<div class="card"><h3>Countries</h3><h2>{filtered_df["Country"].nunique()}</h2></div>', unsafe_allow_html=True)
 
 # ---------------- CHARTS ----------------
-c1, c2 = st.columns(2)
+col1, col2 = st.columns(2)
 
-with c1:
+with col1:
     st.subheader("📊 Attack Distribution")
-    st.bar_chart(df["Attack Type"].value_counts())
+    st.bar_chart(filtered_df["Attack Type"].value_counts())
 
-with c2:
+with col2:
     st.subheader("🌍 Threat Map")
     map_df = pd.DataFrame({
-        "lat": np.random.uniform(10, 60, 120),
-        "lon": np.random.uniform(60, 120, 120)
+        "lat": np.random.uniform(-60, 70, 500),
+        "lon": np.random.uniform(-180, 180, 500)
     })
     st.map(map_df)
 
 # ---------------- VULNERABILITIES ----------------
 st.subheader("🔥 Top Vulnerabilities (2016–2025)")
 
+years = list(range(2016, 2026))
 vulns = pd.DataFrame({
-    "Year": years,
-    "CVE": [f"CVE-{y}-{random.randint(1000,9999)}" for y in years],
-    "Severity": random.choices(["Low", "Medium", "High", "Critical"], k=len(years))
+    "Year": np.repeat(years, 5),
+    "CVE": [f"CVE-{y}-{random.randint(1000,9999)}" for y in years for _ in range(5)],
+    "Severity": random.choices(["Low","Medium","High","Critical"], k=50)
 })
 
 st.dataframe(vulns, use_container_width=True)
@@ -249,15 +248,20 @@ st.dataframe(vulns, use_container_width=True)
 st.subheader("👾 Active Threat Groups")
 
 groups = pd.DataFrame({
-    "Name": ["APT28", "Lazarus", "FIN7", "LockBit", "REvil"],
-    "Attacks/Year": np.random.randint(100, 600, 5),
-    "Target Country": ["USA", "India", "UK", "Germany", "Japan"],
-    "Type": ["Malware", "Ransomware", "Phishing", "Exploit", "Botnet"],
-    "Severity": ["High", "Critical", "High", "Medium", "Critical"]
+    "Name": ["APT28","Lazarus","FIN7","LockBit","REvil","DarkHydra"],
+    "Attacks/Year": np.random.randint(200, 1000, 6),
+    "Target Country": ["USA","India","UK","Germany","Japan","France"],
+    "Type": ["Malware","Ransomware","Phishing","Exploit","Botnet","DDoS"],
+    "Severity": ["High","Critical","High","Medium","Critical","High"]
 })
 
 st.dataframe(groups, use_container_width=True)
 
 # ---------------- RAW DATA ----------------
-st.subheader("📦 Raw Data (Live View)")
-st.dataframe(df.tail(30), use_container_width=True)
+st.subheader("📦 Raw Data (FULL DATASET)")
+
+st.dataframe(
+    filtered_df,
+    use_container_width=True,
+    height=500
+)

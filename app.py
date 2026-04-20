@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import streamlit.components.v1 as components
+import pydeck as pdk
 
 st.set_page_config(
     page_title="Cyber Threat Dashboard",
@@ -9,10 +10,12 @@ st.set_page_config(
     layout="wide"
 )
 
+# ---------------- STATE ----------------
 if "tick" not in st.session_state:
     st.session_state.tick = 0
 st.session_state.tick += 1
 
+# ---------------- THEME ----------------
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -30,6 +33,7 @@ section.main > div {
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
+
 .card {
     background: rgba(0,255,0,0.05);
     border: 1px solid #00ff00;
@@ -61,6 +65,7 @@ div[data-baseweb="select"], input {
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------- MATRIX ----------------
 components.html("""
 <canvas id="matrix"></canvas>
 <style>
@@ -110,6 +115,7 @@ setInterval(draw, 35);
 </script>
 """, height=50)
 
+# ---------------- DATA ----------------
 @st.cache_data
 def generate_data():
     rows = 120000
@@ -136,6 +142,7 @@ def generate_data():
 
 df = generate_data()
 
+# ---------------- SIDEBAR ----------------
 st.sidebar.title("⚡ Filters")
 
 country = st.sidebar.selectbox("Country", ["All"] + sorted(df["Country"].unique()))
@@ -155,6 +162,7 @@ for _, r in live.iterrows():
     </div>
     """, unsafe_allow_html=True)
 
+# ---------------- FILTER ----------------
 filtered_df = df.copy()
 
 if country != "All":
@@ -168,20 +176,24 @@ if search:
         filtered_df.astype(str).apply(lambda r: r.str.contains(search, case=False).any(), axis=1)
     ]
 
+# ---------------- TITLE ----------------
 st.title("🛡️Cyber Threat Trends Dashboard [2016–2025]")
 
+# ---------------- KPI ----------------
 c1, c2, c3 = st.columns(3)
 
 c1.markdown(f'<div class="card"><h3>Total Attacks</h3><h2>{len(filtered_df):,}</h2></div>', unsafe_allow_html=True)
 c2.markdown(f'<div class="card"><h3>Attack Types</h3><h2>{filtered_df["Attack Type"].nunique()}</h2></div>', unsafe_allow_html=True)
 c3.markdown(f'<div class="card"><h3>Countries</h3><h2>{filtered_df["Country"].nunique()}</h2></div>', unsafe_allow_html=True)
 
-# -------- CHART (FULL WIDTH) --------
+# ---------------- CHART ----------------
 st.subheader("📊 Attack Distribution")
 st.bar_chart(filtered_df["Attack Type"].value_counts())
 
-# -------- MAP (NEW LINE FULL WIDTH) --------
+# ---------------- INTERACTIVE MAP ----------------
 st.subheader("🌍 Threat Map")
+
+map_data = filtered_df.groupby("Country").size().reset_index(name="Attacks")
 
 country_coords = {
     "India": (20.5937, 78.9629),
@@ -194,11 +206,34 @@ country_coords = {
     "Japan": (36.2048, 138.2529)
 }
 
-map_df = filtered_df["Country"].map(country_coords).dropna()
-map_df = pd.DataFrame(map_df.tolist(), columns=["lat", "lon"])
+map_data["lat"] = map_data["Country"].map(lambda x: country_coords[x][0])
+map_data["lon"] = map_data["Country"].map(lambda x: country_coords[x][1])
 
-st.map(map_df)
+layer = pdk.Layer(
+    "ScatterplotLayer",
+    data=map_data,
+    get_position='[lon, lat]',
+    get_radius='Attacks * 20',
+    get_fill_color='[0, 255, 0, 160]',
+    pickable=True
+)
 
+view_state = pdk.ViewState(
+    latitude=20,
+    longitude=0,
+    zoom=1.5
+)
+
+st.pydeck_chart(pdk.Deck(
+    layers=[layer],
+    initial_view_state=view_state,
+    tooltip={
+        "html": "<b>{Country}</b><br/>Attacks: {Attacks}",
+        "style": {"backgroundColor": "black", "color": "#00ff00"}
+    }
+))
+
+# ---------------- VULNERABILITIES ----------------
 st.subheader("🔥 Top Vulnerabilities")
 
 vulns = pd.DataFrame({
@@ -209,6 +244,7 @@ vulns = pd.DataFrame({
 
 st.dataframe(vulns, use_container_width=True)
 
+# ---------------- GROUPS ----------------
 st.subheader("👾 Threat Groups")
 
 groups = pd.DataFrame({
@@ -221,8 +257,8 @@ groups = pd.DataFrame({
 
 st.dataframe(groups, use_container_width=True)
 
+# ---------------- RAW DATA ----------------
 st.subheader("📦 Raw Data (Full Access)")
-
 st.markdown(f"**Total Rows:** {len(filtered_df):,}")
 
 rows = st.slider("Rows to display", 100, 5000, 1000)

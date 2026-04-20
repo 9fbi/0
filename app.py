@@ -28,6 +28,11 @@ section.main > div {
     padding-top: 0rem !important;
 }
 /* REMOVE TOP GAP COMPLETELY closed */
+/* REMOVE TOP SPACE FROM SIDEBAR (FILTER AREA ONLY) */
+section[data-testid="stSidebar"] > div:first-child {
+    padding-top: 0rem !important;
+    margin-top: 0rem !important;
+}
 
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}

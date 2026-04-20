@@ -10,6 +10,9 @@ st.set_page_config(
     layout="wide"
 )
 
+# ---------------- AUTO REFRESH ----------------
+st.autorefresh(interval=1000, key="live_refresh")
+
 # ---------------- STATE ----------------
 if "tick" not in st.session_state:
     st.session_state.tick = 0
@@ -65,7 +68,7 @@ div[data-baseweb="select"], input {
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- MATRIX ----------------
+# ---------------- MATRIX BACKGROUND ----------------
 components.html("""
 <canvas id="matrix"></canvas>
 <style>
@@ -118,26 +121,25 @@ setInterval(draw, 35);
 # ---------------- DATA ----------------
 @st.cache_data
 def generate_data():
-    rows = 120000
+    rows = 150000  # increased volume
 
-    years = np.random.randint(2016, 2026, rows)
-    countries = np.random.choice(
-        ["India","USA","China","Germany","Russia","UK","France","Japan"], rows
-    )
-    attacks = np.random.choice(
-        ["Malware","Phishing","Ransomware","DDoS"], rows
-    )
-    severity = np.random.choice(
-        ["Low","Medium","High","Critical"],
-        rows,
-        p=[0.2,0.4,0.3,0.1]
-    )
+    countries = [
+        "India","USA","China","Germany","Russia","UK","France","Japan",
+        "Brazil","Canada","Australia","South Korea","Italy","Spain",
+        "Netherlands","Israel","Singapore","UAE","Turkey","South Africa"
+    ]
 
     return pd.DataFrame({
-        "Year": years,
-        "Country": countries,
-        "Attack Type": attacks,
-        "Severity": severity
+        "Year": np.random.randint(2016, 2026, rows),
+        "Country": np.random.choice(countries, rows),
+        "Attack Type": np.random.choice(
+            ["Malware","Phishing","Ransomware","DDoS"], rows
+        ),
+        "Severity": np.random.choice(
+            ["Low","Medium","High","Critical"],
+            rows,
+            p=[0.2,0.4,0.3,0.1]
+        )
     })
 
 df = generate_data()
@@ -153,7 +155,7 @@ st.sidebar.markdown("## 🌍 Live Attacks")
 
 live = df.groupby("Country").size().reset_index(name="Attacks")
 live["Attacks"] += st.session_state.tick * 10
-live = live.sort_values("Attacks", ascending=False).head(6)
+live = live.sort_values("Attacks", ascending=False).head(10)
 
 for _, r in live.iterrows():
     st.sidebar.markdown(f"""
@@ -190,38 +192,48 @@ c3.markdown(f'<div class="card"><h3>Countries</h3><h2>{filtered_df["Country"].nu
 st.subheader("📊 Attack Distribution")
 st.bar_chart(filtered_df["Attack Type"].value_counts())
 
-# ---------------- INTERACTIVE MAP ----------------
+# ---------------- THREAT MAP ----------------
 st.subheader("🌍 Threat Map")
 
 map_data = filtered_df.groupby("Country").size().reset_index(name="Attacks")
 
+# 🌍 Expanded global coordinates
 country_coords = {
-    "India": (20.5937, 78.9629),
-    "USA": (37.0902, -95.7129),
-    "China": (35.8617, 104.1954),
-    "Germany": (51.1657, 10.4515),
-    "Russia": (61.5240, 105.3188),
-    "UK": (55.3781, -3.4360),
-    "France": (46.2276, 2.2137),
-    "Japan": (36.2048, 138.2529)
+    "India": (20.5937, 78.9629), "USA": (37.0902, -95.7129),
+    "China": (35.8617, 104.1954), "Germany": (51.1657, 10.4515),
+    "Russia": (61.5240, 105.3188), "UK": (55.3781, -3.4360),
+    "France": (46.2276, 2.2137), "Japan": (36.2048, 138.2529),
+    "Brazil": (-14.2350, -51.9253), "Canada": (56.1304, -106.3468),
+    "Australia": (-25.2744, 133.7751), "South Korea": (35.9078, 127.7669),
+    "Italy": (41.8719, 12.5674), "Spain": (40.4637, -3.7492),
+    "Netherlands": (52.1326, 5.2913), "Israel": (31.0461, 34.8516),
+    "Singapore": (1.3521, 103.8198), "UAE": (23.4241, 53.8478),
+    "Turkey": (38.9637, 35.2433), "South Africa": (-30.5595, 22.9375)
 }
+
+map_data = map_data[map_data["Country"].isin(country_coords.keys())]
 
 map_data["lat"] = map_data["Country"].map(lambda x: country_coords[x][0])
 map_data["lon"] = map_data["Country"].map(lambda x: country_coords[x][1])
+
+# 🔥 Pulse animation
+pulse = (np.sin(st.session_state.tick * 0.5) + 1) / 2
+radius_scale = 15 + pulse * 25
+alpha = int(120 + pulse * 135)
 
 layer = pdk.Layer(
     "ScatterplotLayer",
     data=map_data,
     get_position='[lon, lat]',
-    get_radius='Attacks * 20',
-    get_fill_color='[255, 0, 0, 160]',
+    get_radius=f'Attacks * {radius_scale}',
+    get_fill_color=f'[255, 0, 0, {alpha}]',
     pickable=True
 )
 
 view_state = pdk.ViewState(
     latitude=20,
     longitude=0,
-    zoom=1.5
+    zoom=1.3
 )
 
 st.pydeck_chart(pdk.Deck(

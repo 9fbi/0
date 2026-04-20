@@ -214,7 +214,7 @@ layer = pdk.Layer(
     data=map_data,
     get_position='[lon, lat]',
     get_radius='Attacks * 20',
-    get_fill_color='[0, 255, 0, 160]',
+    get_fill_color='[255, 0, 0, 160]',
     pickable=True
 )
 

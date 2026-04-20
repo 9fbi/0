@@ -191,9 +191,6 @@ st.subheader("📦 Raw Data (Full Access)")
 st.markdown(f"**Total Rows:** {len(filtered_df):,}")
 rows = st.slider("Rows to display", 100, 5000, 1000)
 st.dataframe(filtered_df.head(rows), use_container_width=True, height=500)
-<?php
-    }
-?>
 csv = filtered_df.to_csv(index=False).encode("utf-8")
 st.download_button(
     "⬇ Download Full Dataset",

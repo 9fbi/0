@@ -26,9 +26,20 @@ section.main > div {
     padding-top: 0rem !important;
 }
 /* ----------------------------------------- */
+/* REMOVE ALL STREAMLIT FOOTER + DEPLOY UI */
+footer,
+footer * {
+    display: none !important;
+}
+
+/* Remove "Made with Streamlit" / deploy badge */
+div[data-testid="stToolbar"] {
+    display: none !important;
+}
+/* ----------------------------------------- */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-/*header {visibility: hidden;} */
+header {visibility: hidden;}
 .card {
     background: rgba(0,255,0,0.05);
     border: 1px solid #00ff00;

@@ -28,7 +28,7 @@ section.main > div {
 /* ----------------------------------------- */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden;}
+/*header {visibility: hidden;} */
 .card {
     background: rgba(0,255,0,0.05);
     border: 1px solid #00ff00;

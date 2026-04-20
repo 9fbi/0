@@ -17,6 +17,18 @@ html, body, [class*="css"] {
     color: #00ff00 !important;
     font-family: "Courier New", monospace !important;
 }
+/* REMOVE TOP GAP COMPLETELY */
+.block-container {
+    padding-top: 0rem !important;
+    margin-top: 0rem !important;
+}
+
+/* Also remove extra spacing from main */
+section.main > div {
+    padding-top: 0rem !important;
+}
+/* REMOVE TOP GAP COMPLETELY closed */
+
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}

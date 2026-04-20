@@ -27,6 +27,7 @@ section.main > div {
 }
 /* ----------------------------------------- */
 /* REMOVE ALL STREAMLIT FOOTER + DEPLOY UI */
+/* REMOVE ALL STREAMLIT FOOTER + DEPLOY UI */
 footer,
 footer * {
     display: none !important;
@@ -35,6 +36,21 @@ footer * {
 /* Remove "Made with Streamlit" / deploy badge */
 div[data-testid="stToolbar"] {
     display: none !important;
+}
+
+/* Bottom right deploy / cloud / Git icon */
+div[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+/* Hide status / viewer badge */
+div[data-testid="stStatusWidget"] {
+    display: none !important;
+}
+
+/* Extra safety (sometimes appears) */
+#root > div:nth-child(1) > div > div > div > div > section > div {
+    padding-bottom: 0rem !important;
 }
 /* ----------------------------------------- */
 #MainMenu {visibility: hidden;}

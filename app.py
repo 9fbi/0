@@ -166,21 +166,11 @@ with col1:
     st.bar_chart(filtered_df["Attack Type"].value_counts())
 with col2:
     st.subheader("🌍 Threat Map")
-country_coords = {
-    "India": (20.5937, 78.9629),
-    "USA": (37.0902, -95.7129),
-    "China": (35.8617, 104.1954),
-    "Germany": (51.1657, 10.4515),
-    "Russia": (61.5240, 105.3188),
-    "UK": (55.3781, -3.4360),
-    "France": (46.2276, 2.2137),
-    "Japan": (36.2048, 138.2529)
-}
-
-map_df = filtered_df["Country"].map(country_coords).dropna()
-map_df = pd.DataFrame(map_df.tolist(), columns=["lat", "lon"])
-
-st.map(map_df)
+    map_df = pd.DataFrame({
+        "lat": np.random.uniform(-60, 70, 800),
+        "lon": np.random.uniform(-180, 180, 800)
+    })
+    st.map(map_df)
 st.subheader("🔥 Top Vulnerabilities")
 vulns = pd.DataFrame({
     "Year": np.repeat(range(2016,2026), 10),

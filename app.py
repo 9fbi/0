@@ -209,13 +209,11 @@ country_coords = {
 map_data["lat"] = map_data["Country"].map(lambda x: country_coords[x][0])
 map_data["lon"] = map_data["Country"].map(lambda x: country_coords[x][1])
 
-pulse = (np.sin(st.session_state.tick / 2) + 1.5)
-
 layer = pdk.Layer(
     "ScatterplotLayer",
     data=map_data,
     get_position='[lon, lat]',
-    get_radius=f'Attacks * {20 * pulse}',
+    get_radius='Attacks * 20',
     get_fill_color='[255, 0, 0, 160]',
     pickable=True
 )

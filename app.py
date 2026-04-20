@@ -20,7 +20,6 @@ html, body, [class*="css"] {
     color: #00ff00 !important;
     font-family: "Courier New", monospace !important;
 }
-/* ----------------------------------------- */
 .block-container {
     padding-top: 0rem !important;
     margin-top: 0rem !important;
@@ -28,7 +27,6 @@ html, body, [class*="css"] {
 section.main > div {
     padding-top: 0rem !important;
 }
-/* ----------------------------------------- */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 header {visibility: hidden;}
@@ -116,21 +114,36 @@ setInterval(draw, 35);
 def generate_data():
     rows = 120000
 
+    years = np.random.randint(2016, 2026, rows)
+    countries = np.random.choice(
+        ["India","USA","China","Germany","Russia","UK","France","Japan"], rows
+    )
+    attacks = np.random.choice(
+        ["Malware","Phishing","Ransomware","DDoS"], rows
+    )
+    severity = np.random.choice(
+        ["Low","Medium","High","Critical"],
+        rows,
+        p=[0.2,0.4,0.3,0.1]
+    )
+
     return pd.DataFrame({
-        "Year": np.random.randint(2016, 2026, rows),
-        "Country": np.random.choice(["India","USA","China","Germany","Russia","UK","France","Japan"], rows),
-        "Attack Type": np.random.choice(["Malware","Phishing","Ransomware","DDoS"], rows),
-        "Severity": np.random.choice(["Low","Medium","High","Critical"], rows, p=[0.2,0.4,0.3,0.1])
+        "Year": years,
+        "Country": countries,
+        "Attack Type": attacks,
+        "Severity": severity
     })
 
 df = generate_data()
 
 st.sidebar.title("⚡ Filters")
+
 country = st.sidebar.selectbox("Country", ["All"] + sorted(df["Country"].unique()))
 attack_type = st.sidebar.selectbox("Attack Type", ["All"] + sorted(df["Attack Type"].unique()))
 search = st.sidebar.text_input("🔍 Search")
 
 st.sidebar.markdown("## 🌍 Live Attacks")
+
 live = df.groupby("Country").size().reset_index(name="Attacks")
 live["Attacks"] += st.session_state.tick * 10
 live = live.sort_values("Attacks", ascending=False).head(6)
@@ -163,13 +176,13 @@ c1.markdown(f'<div class="card"><h3>Total Attacks</h3><h2>{len(filtered_df):,}</
 c2.markdown(f'<div class="card"><h3>Attack Types</h3><h2>{filtered_df["Attack Type"].nunique()}</h2></div>', unsafe_allow_html=True)
 c3.markdown(f'<div class="card"><h3>Countries</h3><h2>{filtered_df["Country"].nunique()}</h2></div>', unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
+# -------- CHART (FULL WIDTH) --------
+st.subheader("📊 Attack Distribution")
+st.bar_chart(filtered_df["Attack Type"].value_counts())
 
-with col1:
-    st.subheader("📊 Attack Distribution")
-    st.bar_chart(filtered_df["Attack Type"].value_counts())
+# -------- MAP (NEW LINE FULL WIDTH) --------
+st.subheader("🌍 Threat Map")
 
-# ✅ FIXED MAP (ONLY CHANGE)
 country_coords = {
     "India": (20.5937, 78.9629),
     "USA": (37.0902, -95.7129),
@@ -181,13 +194,10 @@ country_coords = {
     "Japan": (36.2048, 138.2529)
 }
 
-with col2:
-    st.subheader("🌍 Threat Map")
+map_df = filtered_df["Country"].map(country_coords).dropna()
+map_df = pd.DataFrame(map_df.tolist(), columns=["lat", "lon"])
 
-    map_df = filtered_df["Country"].map(country_coords).dropna()
-    map_df = pd.DataFrame(map_df.tolist(), columns=["lat", "lon"])
-
-    st.map(map_df)
+st.map(map_df)
 
 st.subheader("🔥 Top Vulnerabilities")
 
@@ -212,6 +222,7 @@ groups = pd.DataFrame({
 st.dataframe(groups, use_container_width=True)
 
 st.subheader("📦 Raw Data (Full Access)")
+
 st.markdown(f"**Total Rows:** {len(filtered_df):,}")
 
 rows = st.slider("Rows to display", 100, 5000, 1000)

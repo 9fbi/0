@@ -9,13 +9,9 @@ st.set_page_config(
     page_icon="🛡️",
     layout="wide"
 )
-
-# ---------------- STATE ----------------
 if "tick" not in st.session_state:
     st.session_state.tick = 0
 st.session_state.tick += 1
-
-# ---------------- THEME ----------------
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -64,8 +60,6 @@ div[data-baseweb="select"], input {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# ---------------- MATRIX ----------------
 components.html("""
 <canvas id="matrix"></canvas>
 <style>
@@ -77,11 +71,9 @@ canvas {
     pointer-events: none;
 }
 </style>
-
 <script>
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
-
 function resize(){
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -93,18 +85,14 @@ const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ#$%^&*";
 const fontSize = 14;
 const columns = Math.floor(window.innerWidth / fontSize);
 const drops = Array(columns).fill(1);
-
 function draw(){
     ctx.fillStyle = "rgba(0,0,0,0.05)";
     ctx.fillRect(0,0,canvas.width,canvas.height);
-
     ctx.fillStyle = "#00ff00";
     ctx.font = fontSize + "px monospace";
-
     for(let i=0;i<drops.length;i++){
         const text = letters[Math.floor(Math.random()*letters.length)];
         ctx.fillText(text, i*fontSize, drops[i]*fontSize);
-
         if(drops[i]*fontSize > canvas.height && Math.random() > 0.975){
             drops[i] = 0;
         }
@@ -114,12 +102,9 @@ function draw(){
 setInterval(draw, 35);
 </script>
 """, height=50)
-
-# ---------------- DATA ----------------
 @st.cache_data
 def generate_data():
     rows = 120000
-
     years = np.random.randint(2016, 2026, rows)
     countries = np.random.choice(
         ["India","USA","China","Germany","Russia","UK","France","Japan"], rows
@@ -141,60 +126,38 @@ def generate_data():
     })
 
 df = generate_data()
-
-# ---------------- SIDEBAR ----------------
 st.sidebar.title("⚡ Filters")
-
 country = st.sidebar.selectbox("Country", ["All"] + sorted(df["Country"].unique()))
 attack_type = st.sidebar.selectbox("Attack Type", ["All"] + sorted(df["Attack Type"].unique()))
 search = st.sidebar.text_input("🔍 Search")
-
 st.sidebar.markdown("## 🌍 Live Attacks")
-
 live = df.groupby("Country").size().reset_index(name="Attacks")
 live["Attacks"] += st.session_state.tick * 10
 live = live.sort_values("Attacks", ascending=False).head(6)
-
 for _, r in live.iterrows():
     st.sidebar.markdown(f"""
     <div style="border:1px solid #00ff00;padding:6px;margin:4px;border-radius:6px;">
     {r['Country']} → {r['Attacks']}
     </div>
     """, unsafe_allow_html=True)
-
-# ---------------- FILTER ----------------
 filtered_df = df.copy()
-
 if country != "All":
     filtered_df = filtered_df[filtered_df["Country"] == country]
-
 if attack_type != "All":
     filtered_df = filtered_df[filtered_df["Attack Type"] == attack_type]
-
 if search:
     filtered_df = filtered_df[
         filtered_df.astype(str).apply(lambda r: r.str.contains(search, case=False).any(), axis=1)
     ]
-
-# ---------------- TITLE ----------------
 st.title("🛡️Cyber Threat Trends Dashboard [2016–2025]")
-
-# ---------------- KPI ----------------
 c1, c2, c3 = st.columns(3)
-
 c1.markdown(f'<div class="card"><h3>Total Attacks</h3><h2>{len(filtered_df):,}</h2></div>', unsafe_allow_html=True)
 c2.markdown(f'<div class="card"><h3>Attack Types</h3><h2>{filtered_df["Attack Type"].nunique()}</h2></div>', unsafe_allow_html=True)
 c3.markdown(f'<div class="card"><h3>Countries</h3><h2>{filtered_df["Country"].nunique()}</h2></div>', unsafe_allow_html=True)
-
-# ---------------- CHART ----------------
 st.subheader("📊 Attack Distribution")
 st.bar_chart(filtered_df["Attack Type"].value_counts())
-
-# ---------------- INTERACTIVE MAP ----------------
 st.subheader("🌍 Threat Map")
-
 map_data = filtered_df.groupby("Country").size().reset_index(name="Attacks")
-
 country_coords = {
     "India": (20.5937, 78.9629),
     "USA": (37.0902, -95.7129),
@@ -205,10 +168,8 @@ country_coords = {
     "France": (46.2276, 2.2137),
     "Japan": (36.2048, 138.2529)
 }
-
 map_data["lat"] = map_data["Country"].map(lambda x: country_coords[x][0])
 map_data["lon"] = map_data["Country"].map(lambda x: country_coords[x][1])
-
 layer = pdk.Layer(
     "ScatterplotLayer",
     data=map_data,
@@ -217,13 +178,11 @@ layer = pdk.Layer(
     get_fill_color='[255, 0, 0, 160]',
     pickable=True
 )
-
 view_state = pdk.ViewState(
     latitude=20,
     longitude=0,
     zoom=1.5
 )
-
 st.pydeck_chart(pdk.Deck(
     layers=[layer],
     initial_view_state=view_state,
@@ -232,21 +191,14 @@ st.pydeck_chart(pdk.Deck(
         "style": {"backgroundColor": "black", "color": "#00ff00"}
     }
 ))
-
-# ---------------- VULNERABILITIES ----------------
 st.subheader("🔥 Top Vulnerabilities")
-
 vulns = pd.DataFrame({
     "Year": np.repeat(range(2016,2026), 10),
     "CVE": [f"CVE-{y}-{np.random.randint(1000,9999)}" for y in range(2016,2026) for _ in range(10)],
     "Severity": np.random.choice(["Low","Medium","High","Critical"], 100)
 })
-
 st.dataframe(vulns, use_container_width=True)
-
-# ---------------- GROUPS ----------------
 st.subheader("👾 Threat Groups")
-
 groups = pd.DataFrame({
     "Name": ["APT28","Lazarus","FIN7","LockBit","REvil","DarkHydra"],
     "Attacks/Year": np.random.randint(200, 1500, 6),
@@ -254,19 +206,12 @@ groups = pd.DataFrame({
     "Type": ["Malware","Ransomware","Phishing","Exploit","Botnet","DDoS"],
     "Severity": ["High","Critical","High","Medium","Critical","High"]
 })
-
 st.dataframe(groups, use_container_width=True)
-
-# ---------------- RAW DATA ----------------
 st.subheader("📦 Raw Data (Full Access)")
 st.markdown(f"**Total Rows:** {len(filtered_df):,}")
-
 rows = st.slider("Rows to display", 100, 5000, 1000)
-
 st.dataframe(filtered_df.head(rows), use_container_width=True, height=500)
-
 csv = filtered_df.to_csv(index=False).encode("utf-8")
-
 st.download_button(
     "⬇ Download Full Dataset",
     csv,

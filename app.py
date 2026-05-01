@@ -59,7 +59,7 @@ function draw(){
 }
 setInterval(draw, 35);
 </script>
-""", height=50)
+""", height=100)
 @st.cache_data
 def generate_ctem_data():
     rows = 5000

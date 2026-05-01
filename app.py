@@ -2,20 +2,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import streamlit.components.v1 as components
-
-# ------------------ PAGE CONFIG ------------------
 st.set_page_config(
     page_title="CTEM Serverless Dashboard",
     page_icon="🛡️",
     layout="wide"
 )
-
-# ------------------ SESSION ------------------
 if "tick" not in st.session_state:
     st.session_state.tick = 0
 st.session_state.tick += 1
-
-# ------------------ MATRIX THEME ------------------
 st.markdown("""
 <style>
 html, body {
@@ -38,8 +32,6 @@ html, body {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# ------------------ MATRIX BACKGROUND ------------------
 components.html("""
 <canvas id="matrix"></canvas>
 <script>
@@ -67,9 +59,7 @@ function draw(){
 }
 setInterval(draw, 35);
 </script>
-""", height=0)
-
-# ------------------ DATA GENERATION ------------------
+""", height=50)
 @st.cache_data
 def generate_ctem_data():
     rows = 5000
@@ -88,8 +78,6 @@ def generate_ctem_data():
     })
 
 df = generate_ctem_data()
-
-# ------------------ RISK ENGINE ------------------
 def calculate_risk(df):
     severity_map = {"Low":1, "Medium":2, "High":3, "Critical":4}
     df["Severity_Score"] = df["Severity"].map(severity_map)
@@ -102,17 +90,12 @@ def calculate_risk(df):
     return df
 
 df = calculate_risk(df)
-
-# ------------------ SIDEBAR ------------------
 st.sidebar.title("⚡ CTEM Filters")
-
 service = st.sidebar.selectbox("Service", ["All"] + sorted(df["Service"].unique()))
 exposure = st.sidebar.selectbox("Exposure", ["All"] + sorted(df["Exposure"].unique()))
 severity = st.sidebar.selectbox("Severity", ["All"] + sorted(df["Severity"].unique()))
 search = st.sidebar.text_input("🔍 Search Function")
-
 filtered_df = df.copy()
-
 if service != "All":
     filtered_df = filtered_df[filtered_df["Service"] == service]
 if exposure != "All":
@@ -121,39 +104,22 @@ if severity != "All":
     filtered_df = filtered_df[filtered_df["Severity"] == severity]
 if search:
     filtered_df = filtered_df[filtered_df["Function"].str.contains(search, case=False)]
-
-# ------------------ HEADER ------------------
 st.title("🛡️ CTEM Dashboard for Serverless Environment")
-
-# ------------------ KPI CARDS ------------------
 c1, c2, c3, c4 = st.columns(4)
-
 c1.markdown(f'<div class="card"><h3>Total Assets</h3><h2>{len(filtered_df)}</h2></div>', unsafe_allow_html=True)
 c2.markdown(f'<div class="card"><h3>Exposure Types</h3><h2>{filtered_df["Exposure"].nunique()}</h2></div>', unsafe_allow_html=True)
 c3.markdown(f'<div class="card"><h3>Services</h3><h2>{filtered_df["Service"].nunique()}</h2></div>', unsafe_allow_html=True)
 c4.markdown(f'<div class="card"><h3>Avg Risk</h3><h2>{filtered_df["Risk_Score"].mean():.2f}</h2></div>', unsafe_allow_html=True)
-
-# ------------------ DISCOVERY ------------------
 st.subheader("🔍 Exposure Discovery")
 st.bar_chart(filtered_df["Exposure"].value_counts())
-
-# ------------------ PRIORITIZATION ------------------
 st.subheader("🔥 Risk Prioritization")
-
 top_risk = filtered_df.sort_values("Risk_Score", ascending=False).head(10)
 st.dataframe(top_risk[["Function","Service","Exposure","Risk_Score"]], use_container_width=True)
-
-# ------------------ VALIDATION ------------------
 st.subheader("🧪 Exploitability Simulation")
-
 filtered_df["Exploitability"] = filtered_df["Risk_Score"] * np.random.uniform(0.5, 1.5, len(filtered_df))
 st.line_chart(filtered_df["Exploitability"].head(100))
-
-# ------------------ SERVICE VIEW ------------------
 st.subheader("🧩 Service Exposure Distribution")
 st.bar_chart(filtered_df["Service"].value_counts())
-
-# ------------------ RECOMMENDATIONS ------------------
 def recommendation(row):
     if row["Exposure"] == "Public API":
         return "Enable authentication"
@@ -165,20 +131,13 @@ def recommendation(row):
         return "Add authorization layer"
     else:
         return "Secure environment variables"
-
 filtered_df["Fix"] = filtered_df.apply(recommendation, axis=1)
-
 st.subheader("🛠️ Recommended Fixes")
 st.dataframe(filtered_df[["Function","Exposure","Fix"]].head(20), use_container_width=True)
-
-# ------------------ RAW DATA ------------------
 st.subheader("📦 Asset Data")
-
 rows = st.slider("Rows to display", 100, 2000, 500)
 st.dataframe(filtered_df.head(rows), use_container_width=True)
-
 csv = filtered_df.to_csv(index=False).encode("utf-8")
-
 st.download_button(
     "⬇ Download Dataset",
     csv,
